@@ -5,15 +5,18 @@
 
 set -e
 
-# Get the current tmux session index if in tmux
+# Get the current tmux session index if in tmux (based on alphabetical order)
 get_tmux_session_index() {
     if [ -n "$TMUX" ]; then
-        # Get session ID (format: $N where N is the index)
-        session_id=$(tmux display-message -p '#{session_id}' 2>/dev/null || echo "")
-        if [ -n "$session_id" ] && [[ "$session_id" == \$* ]]; then
-            # Extract the number after the $
-            echo "${session_id:1}"
-            return 0
+        # Get current session name
+        session_name=$(tmux display-message -p '#{session_name}' 2>/dev/null || echo "")
+        if [ -n "$session_name" ]; then
+            # Get position in sorted list (1-based index)
+            position=$(tmux list-sessions -F '#{session_name}' 2>/dev/null | sort | grep -n "^${session_name}$" | cut -d: -f1)
+            if [ -n "$position" ]; then
+                echo "$position"
+                return 0
+            fi
         fi
     fi
     return 1
