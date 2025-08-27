@@ -31,7 +31,7 @@ cd claude-voice
 ./install.sh
 ```
 
-The installer will automatically configure your `.claude/settings.local.json` with the necessary hooks.
+The installer will automatically configure your `.claude/settings.json` with the necessary hooks.
 
 ### Testing
 
@@ -72,23 +72,39 @@ Then run the installer:
 
 ### Manual Installation (No jq required)
 
-If you don't want to install jq, you can manually edit your `~/.claude/settings.local.json` file:
+If you don't want to install jq, you can manually edit your `~/.claude/settings.json` file:
 
-1. Open or create `~/.claude/settings.local.json`
-2. Add or merge the following hooks:
+1. Open or create `~/.claude/settings.json`
+2. Add or merge the following hooks in the global settings format:
 
 ```json
 {
   "hooks": {
-    "stop": {
-      "command": "bash /absolute/path/to/claude-voice/voice_notifier.sh stop"
-    },
-    "notification": {
-      "command": "bash /absolute/path/to/claude-voice/voice_notifier.sh notification"
-    }
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash /absolute/path/to/claude-voice/voice_notifier.sh stop"
+          }
+        ]
+      }
+    ],
+    "Notification": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash /absolute/path/to/claude-voice/voice_notifier.sh notification"
+          }
+        ]
+      }
+    ]
   }
 }
 ```
+
+**Note**: If you already have other hooks in the `Stop` array, add the voice notifier as an additional hook in the existing array.
 
 **Important**: Replace `/absolute/path/to/claude-voice/` with the actual full path to your claude-voice directory.
 
@@ -108,7 +124,7 @@ claude-voice/
 1. Claude Code triggers hooks on specific events (stop, notification)
 2. The hook passes event data to `voice_notifier.sh` via stdin
 3. The bash script uses macOS `say` command to speak the notification
-4. If running in tmux, it includes the session number for context
+4. If running in tmux, it includes the session number based on alphabetical ordering of session names
 
 ## 🔊 Customization
 
@@ -132,7 +148,7 @@ This is a standalone extraction from the [agent-workflow](https://github.com/you
 - Ensure you're on macOS (Linux/Windows not supported)
 
 ### Script not found errors
-- Use absolute paths in your settings.local.json
+- Use absolute paths in your settings.json
 - Ensure the script has execute permissions: `chmod +x voice_notifier.sh`
 
 ### Tmux session not detected

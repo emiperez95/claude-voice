@@ -14,7 +14,7 @@ NC='\033[0m' # No Color
 
 # Get the absolute path to this project
 PROJECT_DIR="$(cd "$(dirname "$0")" && pwd)"
-SETTINGS_FILE="$HOME/.claude/settings.local.json"
+SETTINGS_FILE="$HOME/.claude/settings.json"
 
 # Parse command line arguments
 DRY_RUN=false
@@ -35,7 +35,7 @@ for arg in "$@"; do
             echo "This script will:"
             echo "  - Remove voice notifier hooks from $SETTINGS_FILE"
             echo "  - Create a backup before making changes"
-            echo "  - Only remove hooks that contain 'voice_notifier.py'"
+            echo "  - Only remove hooks that contain 'voice_notifier'"
             echo "  - Preserve all other hooks and settings"
             echo ""
             exit 0
@@ -68,7 +68,7 @@ if ! command -v jq &> /dev/null; then
     echo "  brew install jq"
     echo ""
     echo "Or manually remove the hooks from:"
-    echo "  ~/.claude/settings.local.json"
+    echo "  ~/.claude/settings.json"
     echo ""
     exit 1
 fi
@@ -78,18 +78,19 @@ echo -e "${GREEN}✓ Found jq for JSON processing${NC}"
 check_voice_hooks() {
     local current_json="$1"
     
-    local stop_cmd=$(echo "$current_json" | jq -r '.hooks.stop.command // ""')
-    local notif_cmd=$(echo "$current_json" | jq -r '.hooks.notification.command // ""')
+    # Check for voice notifier in global settings structure
+    local stop_voice=$(echo "$current_json" | jq -r '(.hooks.Stop // [])[0].hooks[]? | select(.command | contains("voice_notifier")) | .command')
+    local notif_voice=$(echo "$current_json" | jq -r '(.hooks.Notification // [])[0].hooks[]? | select(.command | contains("voice_notifier")) | .command')
     
     local found_hooks=false
     
-    if [[ "$stop_cmd" == *"voice_notifier."* ]]; then
-        echo -e "${GREEN}✓ Found voice notifier 'stop' hook${NC}"
+    if [ -n "$stop_voice" ]; then
+        echo -e "${GREEN}✓ Found voice notifier 'stop' hook: $stop_voice${NC}"
         found_hooks=true
     fi
     
-    if [[ "$notif_cmd" == *"voice_notifier."* ]]; then
-        echo -e "${GREEN}✓ Found voice notifier 'notification' hook${NC}"
+    if [ -n "$notif_voice" ]; then
+        echo -e "${GREEN}✓ Found voice notifier 'notification' hook: $notif_voice${NC}"
         found_hooks=true
     fi
     
@@ -103,15 +104,19 @@ check_voice_hooks() {
 remove_hooks() {
     local current_json="$1"
     
-    # Check and remove hooks that contain voice_notifier
+    # Remove voice notifier hooks from global settings structure
     local result=$(echo "$current_json" | jq '
-        if .hooks.stop.command and (.hooks.stop.command | contains("voice_notifier.")) then
-            del(.hooks.stop)
+        # Remove voice_notifier from Stop hooks array
+        if .hooks.Stop then
+            .hooks.Stop[0].hooks = (.hooks.Stop[0].hooks | map(select(.command | contains("voice_notifier") | not)))
         else . end |
-        if .hooks.notification.command and (.hooks.notification.command | contains("voice_notifier.")) then
-            del(.hooks.notification)
-        else . end |
-        if .hooks == {} then del(.hooks) else . end
+        # Remove entire Notification array if it only contains voice_notifier
+        if .hooks.Notification and (.hooks.Notification[0].hooks | length == 1) and 
+           (.hooks.Notification[0].hooks[0].command | contains("voice_notifier")) then
+            del(.hooks.Notification)
+        elif .hooks.Notification then
+            .hooks.Notification[0].hooks = (.hooks.Notification[0].hooks | map(select(.command | contains("voice_notifier") | not)))
+        else . end
     ')
     echo "$result"
 }

@@ -42,12 +42,14 @@ The system consists of three main components:
 
 2. **Installation Scripts** - Automated JSON manipulation
    - Both `install.sh` and `uninstall.sh` require `jq` for JSON processing
-   - Scripts modify `~/.claude/settings.local.json` to add/remove hooks
+   - Scripts modify `~/.claude/settings.json` (global settings) to add/remove hooks
    - Preserve existing settings and create backups before changes
    - Check for conflicting hooks with `voice_notifier.*` pattern
+   - Handle the global settings array structure for Stop and Notification events
 
 3. **Hook Integration** - Claude Code event system
-   - Hooks are configured in `~/.claude/settings.local.json`
+   - Hooks are configured in `~/.claude/settings.json` (global settings)
+   - Uses the array-based hook structure for Stop and Notification events
    - Claude passes JSON data to stdin when events trigger
    - Commands use absolute paths to the voice_notifier.sh script
 
@@ -57,7 +59,8 @@ The system consists of three main components:
 - The installer uses `jq` for safe JSON manipulation (no Python fallback)
 - Manual installation is always available for users without jq
 - Scripts are executable by default (`chmod +x` already applied)
-- Tmux session detection extracts session index from `#{session_id}` format
+- Tmux session detection uses alphabetical ordering of session names instead of internal session IDs
+- Session numbers are based on `tmux list-sessions | sort` output for consistent numbering
 
 ## Customization Points
 

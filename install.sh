@@ -15,7 +15,7 @@ NC='\033[0m' # No Color
 # Get the absolute path to this project
 PROJECT_DIR="$(cd "$(dirname "$0")" && pwd)"
 VOICE_SCRIPT="$PROJECT_DIR/voice_notifier.sh"
-SETTINGS_FILE="$HOME/.claude/settings.local.json"
+SETTINGS_FILE="$HOME/.claude/settings.json"
 
 # Parse command line arguments
 DRY_RUN=false
@@ -42,7 +42,7 @@ for arg in "$@"; do
             echo "Hooks will be added to: $SETTINGS_FILE"
             echo ""
             echo "Manual Installation:"
-            echo "  If you prefer manual installation, add these to ~/.claude/settings.local.json:"
+            echo "  If you prefer manual installation, add these to ~/.claude/settings.json:"
             echo "  {"
             echo "    \"hooks\": {"
             echo "      \"stop\": {"
@@ -101,23 +101,49 @@ if ! command -v jq &> /dev/null; then
     echo "  brew install jq"
     echo ""
     echo "Or use manual installation by adding the hooks directly to:"
-    echo "  ~/.claude/settings.local.json"
+    echo "  ~/.claude/settings.json"
     echo ""
     echo "Run with --help to see manual installation instructions."
     exit 1
 fi
 echo -e "${GREEN}✓ Found jq for JSON processing${NC}"
 
-# Function to merge JSON using jq
+# Function to merge JSON using jq (for global settings structure)
 merge_hooks() {
     local current_json="$1"
     local voice_script="$2"
     
-    # Use jq to merge hooks
+    # Use jq to add/update voice notifier hooks in global settings format
     echo "$current_json" | jq \
         --arg stop_cmd "bash $voice_script stop" \
         --arg notif_cmd "bash $voice_script notification" \
-        '.hooks.stop.command = $stop_cmd | .hooks.notification.command = $notif_cmd'
+        '
+        # Ensure hooks structure exists
+        .hooks = (.hooks // {}) |
+        
+        # Add/update Stop hook - keep existing hooks but replace voice_notifier
+        .hooks.Stop = (
+            if .hooks.Stop then
+                .hooks.Stop | map(
+                    .hooks = (.hooks | map(
+                        if (.command | contains("voice_notifier")) then
+                            .command = $stop_cmd
+                        else . end
+                    ))
+                )
+            else
+                [{hooks: [{type: "command", command: $stop_cmd}]}]
+            end
+        ) |
+        
+        # If voice_notifier not found in Stop, add it
+        if (.hooks.Stop[0].hooks | map(.command | contains("voice_notifier")) | any | not) then
+            .hooks.Stop[0].hooks += [{type: "command", command: $stop_cmd}]
+        else . end |
+        
+        # Add/update Notification hook
+        .hooks.Notification = [{hooks: [{type: "command", command: $notif_cmd}]}]
+        '
 }
 
 # Check existing hooks
@@ -125,29 +151,18 @@ check_conflicts() {
     local current_json="$1"
     local voice_script="$2"
     
-    local stop_exists=$(echo "$current_json" | jq -r '.hooks.stop.command // "null"')
-    local notif_exists=$(echo "$current_json" | jq -r '.hooks.notification.command // "null"')
+    # Check for existing voice notifier hooks
+    local stop_voice=$(echo "$current_json" | jq -r '(.hooks.Stop // [])[0].hooks[]? | select(.command | contains("voice_notifier")) | .command')
+    local notif_voice=$(echo "$current_json" | jq -r '(.hooks.Notification // [])[0].hooks[]? | select(.command | contains("voice_notifier")) | .command')
     
-    local has_conflicts=false
-    
-    if [ "$stop_exists" != "null" ] && [[ "$stop_exists" != *"voice_notifier."* ]]; then
-        echo -e "${YELLOW}⚠ Existing 'stop' hook found: $stop_exists${NC}"
-        has_conflicts=true
+    if [ -n "$stop_voice" ]; then
+        echo -e "${YELLOW}⚠ Existing 'stop' voice hook found: $stop_voice${NC}"
+        echo -e "${GREEN}  Will replace with: bash $voice_script stop${NC}"
     fi
     
-    if [ "$notif_exists" != "null" ] && [[ "$notif_exists" != *"voice_notifier."* ]]; then
-        echo -e "${YELLOW}⚠ Existing 'notification' hook found: $notif_exists${NC}"
-        has_conflicts=true
-    fi
-    
-    if [ "$has_conflicts" = true ] && [ "$FORCE" = false ] && [ "$DRY_RUN" = false ]; then
-        echo ""
-        read -p "Overwrite existing hooks? (y/n): " -n 1 -r
-        echo
-        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-            echo -e "${YELLOW}Installation cancelled - no changes made${NC}"
-            exit 0
-        fi
+    if [ -n "$notif_voice" ]; then
+        echo -e "${YELLOW}⚠ Existing 'notification' voice hook found: $notif_voice${NC}"
+        echo -e "${GREEN}  Will replace with: bash $voice_script notification${NC}"
     fi
 }
 
