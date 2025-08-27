@@ -13,6 +13,11 @@ This is a standalone voice notification system for Claude Code that announces wh
 ./test_voice.sh  # Tests both stop and notification events
 ```
 
+### Sound Configuration
+```bash
+./configure_sound.sh  # Interactive sound mode configuration
+```
+
 ### Installation Management
 ```bash
 ./install.sh              # Interactive installation (requires jq)
@@ -27,17 +32,23 @@ This is a standalone voice notification system for Claude Code that announces wh
 # Test the voice notifier directly
 echo '{}' | bash voice_notifier.sh stop         # Test stop notification
 echo '{}' | bash voice_notifier.sh notification # Test attention notification
+
+# Test with different modes (create sound.conf first)
+echo 'MODE=bell' > sound.conf  # Switch to bell mode
+echo 'MODE=none' > sound.conf  # Switch to silent mode
+echo 'MODE=voice' > sound.conf # Switch to voice mode
 ```
 
 ## Architecture
 
-The system consists of three main components:
+The system consists of four main components:
 
 1. **voice_notifier.sh** - The core notification script
    - Pure bash implementation (no Python dependencies)
    - Reads JSON from stdin (consumed but not parsed)
    - Detects tmux sessions via `$TMUX` environment variable
-   - Uses macOS `say` command for text-to-speech
+   - Supports three sound modes: voice, bell, and none
+   - Reads configuration from optional `sound.conf` file
    - Event types: `stop` and `notification`
 
 2. **Installation Scripts** - Automated JSON manipulation
@@ -53,6 +64,12 @@ The system consists of three main components:
    - Claude passes JSON data to stdin when events trigger
    - Commands use absolute paths to the voice_notifier.sh script
 
+4. **Sound Configuration** - User preference management
+   - `configure_sound.sh` provides interactive configuration
+   - Settings stored in local `sound.conf` file (gitignored)
+   - Supports voice, bell, and none modes
+   - Configuration persists across sessions
+
 ## Key Implementation Details
 
 - All scripts check for `voice_notifier.*` (with dot) to handle both `.py` and `.sh` versions
@@ -64,6 +81,13 @@ The system consists of three main components:
 
 ## Customization Points
 
+### Sound Modes
+Configure notification sounds via `sound.conf` file:
+- `MODE=voice` - Spoken notifications (default)
+- `MODE=bell` - Terminal bell sound
+- `MODE=none` - Silent mode
+
+### Voice Messages
 Voice messages can be modified in `voice_notifier.sh` in the `handle_stop()` and `handle_notification()` functions. The current messages are:
 - "Claude has stopped [in session N]"
 - "Claude needs your attention [in session N]"

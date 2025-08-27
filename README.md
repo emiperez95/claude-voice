@@ -7,6 +7,7 @@ Standalone audio notifications for Claude Code using macOS text-to-speech. Get v
 - **Stop Notifications**: Announces when Claude has finished executing
 - **Attention Alerts**: Notifies when Claude needs user input
 - **Tmux Integration**: Announces session number when running in tmux
+- **Sound Modes**: Choose between voice, bell, or silent notifications
 - **Pure Bash**: No Python or external dependencies for the notifier
 - **Lightweight**: Simple bash scripts using macOS built-in `say` command
 
@@ -113,9 +114,11 @@ If you don't want to install jq, you can manually edit your `~/.claude/settings.
 ```
 claude-voice/
 ├── voice_notifier.sh   # Main notification script (pure bash)
+├── configure_sound.sh  # Sound mode configuration script
 ├── install.sh          # Automated installation script (requires jq)
 ├── uninstall.sh        # Automated uninstallation script (requires jq)
 ├── test_voice.sh       # Test script
+├── sound.conf          # Sound mode configuration (gitignored)
 └── README.md           # This file
 ```
 
@@ -127,6 +130,23 @@ claude-voice/
 4. If running in tmux, it includes the session number based on alphabetical ordering of session names
 
 ## 🔊 Customization
+
+### Sound Modes
+
+Configure your preferred notification sound using `./configure_sound.sh`:
+
+- **voice** (default): Spoken notifications using macOS `say` command
+- **bell**: Terminal bell sound
+- **none**: Silent mode (no notifications)
+
+The configuration is stored in `sound.conf` (gitignored for personal preferences).
+
+You can also manually create/edit `sound.conf`:
+```bash
+MODE=voice  # Options: voice, bell, none
+```
+
+### Voice Messages
 
 To modify the voice messages, edit the `handle_stop()` and `handle_notification()` functions in `voice_notifier.sh`:
 

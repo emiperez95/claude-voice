@@ -5,6 +5,32 @@
 
 set -e
 
+# Get the directory where this script is located
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+CONFIG_FILE="$SCRIPT_DIR/sound.conf"
+
+# Default mode
+SOUND_MODE="voice"
+
+# Load configuration if it exists
+if [ -f "$CONFIG_FILE" ]; then
+    # Parse MODE from config file
+    mode_line=$(grep "^MODE=" "$CONFIG_FILE" 2>/dev/null || echo "")
+    if [ -n "$mode_line" ]; then
+        SOUND_MODE="${mode_line#MODE=}"
+        # Validate mode
+        case "$SOUND_MODE" in
+            voice|bell|none)
+                # Valid mode
+                ;;
+            *)
+                echo "[CONFIG WARNING] Invalid MODE '$SOUND_MODE' in sound.conf, using default 'voice'" >&2
+                SOUND_MODE="voice"
+                ;;
+        esac
+    fi
+fi
+
 # Get the current tmux session index if in tmux (based on alphabetical order)
 get_tmux_session_index() {
     if [ -n "$TMUX" ]; then
@@ -22,12 +48,28 @@ get_tmux_session_index() {
     return 1
 }
 
-# Speak a message using macOS say command
-speak() {
+# Notify based on mode setting
+notify() {
     local message="$1"
-    say "$message" 2>/dev/null || {
-        echo "[VOICE ERROR] Failed to speak: $message" >&2
-    }
+    
+    case "$SOUND_MODE" in
+        voice)
+            say "$message" 2>/dev/null || {
+                echo "[VOICE ERROR] Failed to speak: $message" >&2
+            }
+            ;;
+        bell)
+            printf '\a'
+            ;;
+        none)
+            # Silent mode - do nothing
+            ;;
+    esac
+}
+
+# Speak a message using macOS say command (kept for compatibility, uses notify internally)
+speak() {
+    notify "$1"
 }
 
 # Handle stop event

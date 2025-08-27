@@ -27,3 +27,6 @@ pip-delete-this-directory.txt
 .coverage
 htmlcov/
 .pytest_cache/
+
+# Local sound configuration (personal preference)
+sound.conf

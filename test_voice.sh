@@ -13,10 +13,25 @@ NC='\033[0m' # No Color
 
 PROJECT_DIR="$(cd "$(dirname "$0")" && pwd)"
 VOICE_SCRIPT="$PROJECT_DIR/voice_notifier.sh"
+CONFIG_FILE="$PROJECT_DIR/sound.conf"
 
 echo ""
 echo -e "${BLUE}Claude Voice Notifier - Test Suite${NC}"
 echo "===================================="
+echo ""
+
+# Display current mode
+if [ -f "$CONFIG_FILE" ]; then
+    mode_line=$(grep "^MODE=" "$CONFIG_FILE" 2>/dev/null || echo "")
+    if [ -n "$mode_line" ]; then
+        CURRENT_MODE="${mode_line#MODE=}"
+        echo -e "${GREEN}Sound mode: $CURRENT_MODE${NC}"
+    else
+        echo -e "${GREEN}Sound mode: voice (default)${NC}"
+    fi
+else
+    echo -e "${GREEN}Sound mode: voice (default, no config file)${NC}"
+fi
 echo ""
 
 # Check if voice_notifier.sh exists
