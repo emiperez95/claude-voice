@@ -20,7 +20,7 @@ if [ -f "$CONFIG_FILE" ]; then
         SOUND_MODE="${mode_line#MODE=}"
         # Validate mode
         case "$SOUND_MODE" in
-            voice|bell|none)
+            voice|glass|none)
                 # Valid mode
                 ;;
             *)
@@ -59,8 +59,10 @@ notify() {
                 echo "[VOICE ERROR] Failed to speak: $message" >&2
             }
             ;;
-        bell)
-            printf '\a'
+        glass)
+            afplay /System/Library/Sounds/Glass.aiff 2>/dev/null || {
+                echo "[SOUND ERROR] Failed to play Glass sound" >&2
+            }
             ;;
         none)
             # Silent mode - do nothing

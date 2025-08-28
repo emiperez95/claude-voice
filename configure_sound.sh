@@ -38,7 +38,7 @@ echo ""
 
 echo "Select notification mode:"
 echo "  1) Voice - Spoken notifications (default)"
-echo "  2) Bell  - Terminal bell sound"
+echo "  2) Glass - macOS Glass sound"
 echo "  3) None  - Silent mode"
 echo ""
 
@@ -50,8 +50,8 @@ case $choice in
         echo -e "${GREEN}✓ Selected: Voice notifications${NC}"
         ;;
     2)
-        NEW_MODE="bell"
-        echo -e "${GREEN}✓ Selected: Bell sound${NC}"
+        NEW_MODE="glass"
+        echo -e "${GREEN}✓ Selected: Glass sound${NC}"
         ;;
     3)
         NEW_MODE="none"
