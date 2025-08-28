@@ -37,10 +37,11 @@ get_tmux_session_index() {
         # Get current session name
         session_name=$(tmux display-message -p '#{session_name}' 2>/dev/null || echo "")
         if [ -n "$session_name" ]; then
-            # Get position in sorted list (1-based index)
+            # Get position in sorted list (0-based index)
             position=$(tmux list-sessions -F '#{session_name}' 2>/dev/null | sort | grep -n "^${session_name}$" | cut -d: -f1)
             if [ -n "$position" ]; then
-                echo "$position"
+                # Convert to 0-based index
+                echo $((position - 1))
                 return 0
             fi
         fi

@@ -77,7 +77,7 @@ The system consists of four main components:
 - Manual installation is always available for users without jq
 - Scripts are executable by default (`chmod +x` already applied)
 - Tmux session detection uses alphabetical ordering of session names instead of internal session IDs
-- Session numbers are based on `tmux list-sessions | sort` output for consistent numbering
+- Session numbers are 0-based (starting from 0) and determined by alphabetical position in `tmux list-sessions | sort` output
 
 ## Customization Points
 
@@ -89,5 +89,5 @@ Configure notification sounds via `sound.conf` file:
 
 ### Voice Messages
 Voice messages can be modified in `voice_notifier.sh` in the `handle_stop()` and `handle_notification()` functions. The current messages are:
-- "Claude has stopped [in session N]"
-- "Claude needs your attention [in session N]"
+- "Claude has stopped [in session N]" (where N is 0-based session index)
+- "Claude needs your attention [in session N]" (where N is 0-based session index)
